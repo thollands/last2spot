@@ -4,7 +4,7 @@
 
 from urllib.request import urlopen
 import json
-import pandas as pd
+import time
 
 def create_url(method, user, api, format="", fromtime="", totime=""):
 
@@ -21,7 +21,7 @@ def create_url(method, user, api, format="", fromtime="", totime=""):
 
 def open_decode_json(url):
 
-    response = urlopen(url).readall().decode('utf-8')
+    response = urlopen(url).read().decode('utf-8')
     return json.loads(response)
 
 def main():
@@ -42,6 +42,8 @@ def main():
 
     while i<50:
 
+        start = time.time()
+
         chart_from = chartlist_response['weeklychartlist']['chart'][i]['from']
         chart_to = chartlist_response['weeklychartlist']['chart'][i]['to']
 
@@ -50,6 +52,11 @@ def main():
         chart_response = open_decode_json(chart_url)
 
         print(chart_response)
+
+        end = time.time()
+        remain = (start + 1) - end
+        if remain > 0:
+            time.sleep(remain)
 
         i += 1
 
