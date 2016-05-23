@@ -40,25 +40,31 @@ def main():
 
     i = 0
 
-    while i<50:
+    total_charts = len(chartlist_response['weeklychartlist']['chart'])
 
-        start = time.time()
+    outdir = r"c:\Temp\lasttemp\"
 
-        chart_from = chartlist_response['weeklychartlist']['chart'][i]['from']
-        chart_to = chartlist_response['weeklychartlist']['chart'][i]['to']
+    with open(outdir + 'tracks.json', 'a') as outfile:
 
-        chart_url = create_url("user.getWeeklyTrackChart", "supertang", "14de72a7b1c95b126eefed71dfe27c45", format="json", fromtime=chart_from, totime=chart_to)
+        while i<(50):
 
-        chart_response = open_decode_json(chart_url)
+            start = time.time()
 
-        print(chart_response)
+            chart_from = chartlist_response['weeklychartlist']['chart'][i]['from']
+            chart_to = chartlist_response['weeklychartlist']['chart'][i]['to']
 
-        end = time.time()
-        remain = (start + 1) - end
-        if remain > 0:
-            time.sleep(remain)
+            chart_url = create_url("user.getWeeklyTrackChart", "supertang", "14de72a7b1c95b126eefed71dfe27c45", format="json", fromtime=chart_from, totime=chart_to)
 
-        i += 1
+            chart_response = open_decode_json(chart_url)
+
+            print(chart_response)
+
+            end = time.time()
+            remain = (start + 1) - end
+            if remain > 0:
+                time.sleep(remain)
+
+            i += 1
 
     # for trackname in decoded['weeklytrackchart']['track']:
     #     print(trackname['artist']["#text"], " - ", trackname['name'], "(", trackname['artist']["mbid"], ")")
