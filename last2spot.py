@@ -3,22 +3,40 @@
 """
 
 from urllib.request import urlopen
+from urllib.parse import urlencode, quote_plus
 import json
 import time
-import pandas as pd
+# import pandas as pd
 
-def create_url(method, user, api, format="", fromtime="", totime=""):
+def create_last_url(method, user, api, format="", fromtime="", totime=""):
 
-    method = r"method=" + method
-    user = r"&user=" + user
-    api = r"&api_key=" + api
+    params = {
+        "method": method,
+        "user": user,
+        "api_key": api
+    }
     if format:
-        format = r"&format=" + format
+        params['format'] = format
     if fromtime:
-        fromtime = r"&from=" + fromtime
+        params['from'] = fromtime
     if totime:
-        totime = r"&to=" + totime
-    return r"http://ws.audioscrobbler.com/2.0/?" + method + user + api + format + fromtime + totime
+        params['to'] = totime
+
+    all_params = urlencode(params)
+
+    return r"http://ws.audioscrobbler.com/2.0/?" + all_params
+
+def spot_search_url(artist, track, album, year, stype='track'):
+
+    params = {}
+
+    params["q"] = "artist:" + str(artist) + " track:" + str(track)# + " album:" + str(album) + " year:" + str(year)
+
+    params['type'] = stype
+
+    all_params = urlencode(params)
+
+    return r"https://api.spotify.com/v1/search?" + all_params
 
 def open_decode_json(url):
 
@@ -36,17 +54,17 @@ def remove_dupes(alllist):
             unique.append(d)
     return unique
 
-def main():
+def last_get():
     """
     main script
 
     :return:
     """
-    user_url = create_url("user.getInfo", "supertang", "14de72a7b1c95b126eefed71dfe27c45", format="json")
+    user_url = create_last_url("user.getInfo", "supertang", "14de72a7b1c95b126eefed71dfe27c45", format="json")
 
     # user_response = open_decode_json(user_url)
 
-    chartlist_url = create_url("user.getWeeklyChartList", "supertang", "14de72a7b1c95b126eefed71dfe27c45", format="json")
+    chartlist_url = create_last_url("user.getWeeklyChartList", "supertang", "14de72a7b1c95b126eefed71dfe27c45", format="json")
 
     chartlist_response = open_decode_json(chartlist_url)
 
@@ -58,14 +76,14 @@ def main():
 
     with open(outdir + 'alltracks.json', 'w') as outfileall, open(outdir + 'uniquetracks.json', 'w') as outfileunique:
 
-        for i in range(total_charts):
+        for i in range(40, 41):
 
             start = time.time()
 
             chart_from = chartlist_response['weeklychartlist']['chart'][i]['from']
             chart_to = chartlist_response['weeklychartlist']['chart'][i]['to']
 
-            chart_url = create_url("user.getWeeklyTrackChart", "supertang", "14de72a7b1c95b126eefed71dfe27c45", format="json", fromtime=chart_from, totime=chart_to)
+            chart_url = create_last_url("user.getWeeklyTrackChart", "supertang", "14de72a7b1c95b126eefed71dfe27c45", format="json", fromtime=chart_from, totime=chart_to)
 
             chart_response = open_decode_json(chart_url)
 
@@ -79,7 +97,7 @@ def main():
                     alltracks.append({
                         'artist': track['artist']["#text"],
                         'track': track['name'],
-                        'mbid': track['artist']["mbid"]
+                        'lastid': track['artist']["mbid"]
                     })
 
             end = time.time()
@@ -95,5 +113,29 @@ def main():
         print("Total tracks: " + str(len(alltracks)))
         print("Unique tracks: " + str(len(uniquetracks)))
 
+        return uniquetracks
+
+def spot_post():
+    pass
+
 if __name__ == '__main__':
-    main()
+    tracks = last_get()
+    spot_tracks = []
+    for i in tracks:
+        search_url = spot_search_url(i['artist'], i['track'], None, None)
+
+        response = open_decode_json(search_url)
+
+        results = response['tracks']['items']
+
+        if not results:
+            print("search for '" + i['track'] + "' by " + i['artist'] + " returned no results :(")
+        else:
+            print("search for '" + i['track'] + "' by " + i['artist'] + " returned " + str(response['tracks']["total"]) + " results :D")
+            spot_tracks.append({
+                'artist': response['tracks']['items'][0]['artists'][0]['name'],
+                'track': response['tracks']['items'][0]['name'],
+                'spotid': response['tracks']['items'][0]['uri']
+            })
+    print(spot_tracks)
+
