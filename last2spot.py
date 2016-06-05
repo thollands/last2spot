@@ -6,6 +6,7 @@ from urllib.request import urlopen
 from urllib.parse import urlencode, quote_plus
 import json
 import time
+import oauth2 as oauth
 # import pandas as pd
 
 def create_last_url(method, user, api, format="", fromtime="", totime=""):
@@ -115,11 +116,7 @@ def last_get():
 
         return uniquetracks
 
-def spot_post():
-    pass
-
-if __name__ == '__main__':
-    tracks = last_get()
+def spot_search(tracks):
     spot_tracks = []
     for i in tracks:
         search_url = spot_search_url(i['artist'], i['track'], None, None)
@@ -131,11 +128,45 @@ if __name__ == '__main__':
         if not results:
             print("search for '" + i['track'] + "' by " + i['artist'] + " returned no results :(")
         else:
-            print("search for '" + i['track'] + "' by " + i['artist'] + " returned " + str(response['tracks']["total"]) + " results :D")
+            print("search for '" + i['track'] + "' by " + i['artist'] + " returned " + str(
+                response['tracks']["total"]) + " results :D")
             spot_tracks.append({
                 'artist': response['tracks']['items'][0]['artists'][0]['name'],
                 'track': response['tracks']['items'][0]['name'],
                 'spotid': response['tracks']['items'][0]['uri']
             })
-    print(spot_tracks)
 
+    return spot_tracks
+
+def spot_post(tracks, user, playlist):
+
+    base_url = r"https://api.spotify.com/v1/users/"
+
+    def oauth_req(url, key, secret, http_method="POST", post_body=None, http_headers="Content-type: application/json"):
+
+        CONSUMER_KEY = "BQBQeK0EGFXN_W2YJdfq7e6j_1QsirDAEJV-G74-aJ1raf529NEcM6cb7eV2wbpUVL8WaCuHXD0M-gy6fLuHWRxTbawlrCR9zwpmHgcLnamIA291j400JXbqgx6VdzUwQqiTNHGLykYkGqq_ei62VEk6KwFMfAXHUBuHZHLRBoCGf7bNrl_zCZY"
+        CONSUMER_SECRET = "db8ce5bc60404116a30bc9fa8aa2e1d2"
+        consumer = oauth.Consumer(key=CONSUMER_KEY, secret=CONSUMER_SECRET)
+        token = oauth.Token(key=key, secret=secret)
+        client = oauth.Client(consumer, token)
+        resp, content = client.request(
+            url,
+            method=http_method,
+            body=urlencode({'status': post_body}),
+            headers=http_headers,
+            force_auth_header=True
+        )
+        return content
+
+    oauth_req('http://api.twitter.com/1/statuses/update.json', KEY, SECRET, post_body=MESSAGE)
+
+    spotid_str = ",".join([i['spotid'] for i in tracks])
+
+    print(spotid_str)
+    uri_str = r"https://api.spotify.com/v1/users/" + user + r"/playlists/" + playlist + r"/" + spotid_str
+
+
+if __name__ == '__main__':
+    tracks = last_get()
+    search_results = spot_search(tracks)
+    spot_post(search_results, "1233944934", "4GI3euyla7Ga1SyYd9K0oF")
